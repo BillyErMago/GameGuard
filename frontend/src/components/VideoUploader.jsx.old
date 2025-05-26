@@ -1,0 +1,58 @@
+import React, { useState } from 'react';
+import { initializeContract, registerVideo, verifyVideo } from '../services/blockchain';
+import { computeHash } from '../utils/hash';
+import { uploadToIPFS } from '../utils/ipfs';
+
+const VideoUploader = () => {
+  const [videoFile, setVideoFile] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [status, setStatus] = useState('');
+
+  // Inizializza il contratto al caricamento
+  React.useEffect(() => {
+    const init = async () => {
+      const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+      const abi = require('../../artifacts/contracts/VideoVerification.sol/VideoVerification.json').abi;
+      const contractInstance = await initializeContract(contractAddress, abi);
+      setContract(contractInstance);
+    };
+    init();
+  }, []);
+
+  const handleRegister = async () => {
+    setStatus('Registrazione in corso...');
+    try {
+      const hash = await computeHash(videoFile);
+      const ipfsCID = await uploadToIPFS(videoFile);
+      const videoId = `${videoFile.name}-${Date.now()}`;
+      
+      await registerVideo(videoId, ethers.utils.hexlify(hash), ipfsCID);
+      setStatus('✅ Video registrato! CID: ' + ipfsCID);
+    } catch (error) {
+      setStatus(`❌ Errore: ${error.message}`);
+    }
+  };
+
+  const handleVerify = async () => {
+    setStatus('Verifica in corso...');
+    try {
+      const hash = await computeHash(videoFile);
+      const videoId = `${videoFile.name}-${Date.now()}`;
+      const isValid = await verifyVideo(videoId, ethers.utils.hexlify(hash));
+      setStatus(isValid ? 'Video autentico!' : 'Video alterato!');
+    } catch (error) {
+      setStatus(`Errore: ${error.message}`);
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={(e) => setVideoFile(e.target.files[0])} />
+      <button onClick={handleRegister}>Registra</button>
+      <button onClick={handleVerify}>Verifica</button>
+      <p>{status}</p>
+    </div>
+  );
+};
+
+export default VideoUploader;

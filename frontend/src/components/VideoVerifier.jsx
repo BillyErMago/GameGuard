@@ -1,0 +1,263 @@
+import React, { useState } from 'react';
+import { BrowserProvider, Contract, toBeHex } from "ethers";
+//import { BrowserProvider } from "ethers";
+import { ethers } from 'ethers';
+import { computeHash } from '../utils/hash';
+import { uploadToIPFS } from '../utils/ipfs';
+import { Gamepad2, ShieldCheck, UploadCloud, Verified, Wallet } from 'lucide-react';
+import VideoVerificationABI from '../contracts/VideoVerification.json';
+
+const VideoVerifier = () => {
+  const [videoFile, setVideoFile] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [account, setAccount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isRegisterProcessing, setIsRegisterProcessing] = useState(false);
+  const [isVerifyProcessing, setIsVerifyProcessing] = useState(false);
+
+  // Connessione al wallet
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      alert("Install MetaMask!");
+      return;
+    }
+
+    try {
+      const provider = new BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+
+      const signer = await provider.getSigner(); // ⚠️ Serve `await` con ethers v6
+      const contractAddress = "0x67DA3fe6EAF5a206188Ee99CD2CD6d888A9291a3" /*"0x..."; // Sostituisci con l'indirizzo reale*/
+      const abi = VideoVerificationABI.output.abi;
+
+      const contractInstance = new Contract(contractAddress, abi, signer); // ⚠️ Usare `Contract` di ethers v6
+      setContract(contractInstance);
+      setAccount(await signer.getAddress());
+    } catch (error) {
+      console.error("Connection error:", error);
+      alert("Error connecting wallet");
+    }
+  };
+  //const connectWallet = async () => {
+    //if (window.ethereum) {
+      //try {
+        //const provider = new /*ethers.providers.Web3Provider*/BrowserProvider(window.ethereum);
+        //await provider.send("eth_requestAccounts", []);
+        //const signer = provider.getSigner();
+        //const contractAddress = "0x..."; // Sostituisci con l'indirizzo
+        //const abi = VideoVerificationABI.abi;
+        //setContract(new ethers.Contract(contractAddress, abi, signer));
+        //setAccount(await signer.getAddress());
+      //} catch (error) {
+        //console.error("Connection error:", error);
+        //alert("Error connecting wallet");
+      //}
+    //} else {
+      //alert("Install MetaMask!");
+    //}
+  //};
+
+  // Registrazione video
+  const handleRegister = async () => {
+    if (!videoFile || !contract) return;
+    setIsProcessing(true);
+    setIsRegisterProcessing(true);
+    try {
+      const videoHash = await computeHash(videoFile);
+      const ipfsCID = await uploadToIPFS(videoFile);
+      //const videoId = `${videoFile.name}-${Date.now()}`;
+      //const tx = await contract.registerVideo(videoId, videoHash /*ethers.utils.hexlify(videoHash)*/, ipfsCID);
+      const tx = await contract.registerVideo(videoHash /*ethers.utils.hexlify(videoHash)*/, ipfsCID);
+      await tx.wait();
+      alert("✅ Clip secured on-chain!");
+      
+    } catch (error) {
+      console.error("Registration error:", error);
+    }
+    setIsProcessing(false);
+    setIsRegisterProcessing(false);
+  };
+
+  
+
+  // Verifica video
+  const handleVerify = async () => {
+    if (!videoFile || !contract) return;
+    setIsProcessing(true);
+    setIsVerifyProcessing(true);
+    try {
+      const videoHash = await computeHash(videoFile);
+      //const videoId = `${videoFile.name}-${Date.now()}`;
+      //console.log("Verifica videoId:", videoId);
+      
+      // Verifica se il video è registrato
+      /*const isRegistered = await contract.isVideoRegistered(videoId);
+      if (!isRegistered) {
+        alert("⚠️ Video not registered!");
+        return;
+      }*/
+
+      //const isValid = await contract.verifyVideo(videoId, videoHash/*ethers.utils.hexlify(videoHash)*/);
+      const isValid = await contract.verifyVideo(videoHash/*ethers.utils.hexlify(videoHash)*/);
+      alert(isValid ? "🔥 Clip is authentic!" : "⚠️ Clip tampered!");
+    } catch (error) {
+      console.error("Verification error:", error);
+      alert("Verification failed");
+    }
+    setIsProcessing(false);
+    setIsVerifyProcessing(false);
+  };
+
+  return (
+    <div className="min-h-screen holographic-effect relative overflow-hidden">
+      {/* Effetto scan-line */}
+      {/* <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-scan-line"></div>
+      </div> */}
+
+      <div className="max-w-4xl mx-auto px-4 py-16 relative z-10">
+        {/* Header */}
+        <div className="cyber-border rounded-2xl p-1 mb-16 animate-fade-in">
+          <div className="bg-gray-900/80 backdrop-blur-lg rounded-2xl p-8">
+            <div className="text-center">
+              <div className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 p-1 rounded-full mb-6">
+                <div className="bg-gray-900 rounded-full p-4">
+                  <ShieldCheck className="w-16 h-16 text-purple-400 neon-text" />
+                </div>
+              </div>
+              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent neon-text">
+                GameGuard
+              </h1>
+              <p className="text-xl text-gray-400 font-mono">Protect your gaming legacy</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card principale */}
+        <div className="cyber-border rounded-2xl p-1">
+          <div className="bg-gray-900/80 backdrop-blur-lg rounded-2xl p-8">
+            {/* Wallet Section */}
+            <div className="mb-10">
+              <button
+                onClick={connectWallet}
+                className="w-full py-4 px-8 rounded-xl font-bold text-lg bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-300 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -rotate-45"></div>
+                <span className="flex items-center justify-center gap-3 relative">
+                  {account ? (
+                    <>
+                      <Verified className="w-6 h-6 text-green-400" />
+                      <span className="font-mono neon-text">{`${account.slice(0,6)}...${account.slice(-4)}`}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="w-6 h-6 text-purple-300" />
+                      <span className="neon-text">Connect Web3 Wallet</span>
+                    </>
+                  )}
+                </span>
+              </button>
+            </div>
+
+            {/* Upload Area */}
+            <div className={`mb-10 border-4 border-dashed rounded-xl p-8 text-center 
+              transition-all duration-500 ${!videoFile ? 'border-purple-500/30 hover:border-purple-500/60' : 'border-green-500/50'}`}>
+              
+              <label className="cursor-pointer space-y-6">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setVideoFile(e.target.files[0])}
+                  className="hidden"
+                  disabled={isProcessing}
+                />
+                <div className="space-y-6">
+                  <div className="inline-block p-6 bg-purple-900/30 rounded-full">
+                    <UploadCloud className="w-16 h-16 text-purple-400 animate-pulse neon-text" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold mb-2 neon-text">
+                      {videoFile ? (
+                        <span className="text-green-400">"{videoFile.name}"</span>
+                        // TODO: Visualizzare il video
+                        // <video width="800" preload="metadata">
+                        //   <source src={videoFile} type='video/mp4'></source>
+                        // </video>
+                      ) : (
+                        <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                          DROP YOUR CLIP HERE
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-gray-400 font-mono text-sm">
+                      {!videoFile && "MP4, MOV, AVI | Max 2GB"}
+                    </p>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <button
+                onClick={handleRegister}
+                disabled={!videoFile || isProcessing}
+                className="py-4 px-8 rounded-xl font-bold text-lg bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-300 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -rotate-45"></div>
+                <span className="flex items-center justify-center gap-3 relative">
+                  {/* se isProcessing allora disabilita, se anche isRegisterProcessing spinna */
+                  isRegisterProcessing ? (
+                    <>
+                      <div className="animate-spin w-6 h-6 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+                      <span className="neon-text">Securing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-6 h-6 text-purple-300" />
+                      <span className="neon-text">Secure Clip</span>
+                    </>
+                  )}
+
+                  
+                </span>
+              </button>
+
+              <button
+                onClick={handleVerify}
+                disabled={!videoFile || isProcessing}
+                className="py-4 px-8 rounded-xl font-bold text-lg bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all duration-300 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -rotate-45"></div>
+                <span className="flex items-center justify-center gap-3 relative">
+                  {isVerifyProcessing ? (
+                    <>
+                      <div className="animate-spin w-6 h-6 border-4 border-green-500 border-t-transparent rounded-full"></div>
+                      <span className="neon-text">Scanning...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Gamepad2 className="w-6 h-6 text-green-300" />
+                      <span className="neon-text">Verify Clip</span>
+                    </>
+                  )}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-16 text-center text-gray-400 animate-fade-in">
+          <p className="text-sm font-mono neon-text">
+            Powered by Ethereum ⚡ Secured by Smart Contracts
+            <br />
+            <span className="text-purple-400">#GameFi #Web3Gaming #NFT</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VideoVerifier;
