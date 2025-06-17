@@ -17,4 +17,4 @@ Una volta completati questi step, si aprirà l'interfaccia utente, molto semplic
 Si andrà a collegare il Wallet di MetaMask all'interno della pagina, con l'apposito tasto.
 Si inserirà il video per la quale si vuole verificare l'integrità, nella finestra "DROP YOUR CLIP HERE"
 
-E infine che i due appositi pulsanti "Secure Clip" o "Verify Clip" si andranno a fare rispettivamente la "messa in sicurezza" del video, oppure verificare "la sicurezza" del video 
+E infine con i due appositi pulsanti "Secure Clip" o "Verify Clip" si andranno a fare rispettivamente la "messa in sicurezza" del video, oppure verificare "la sicurezza" del video 
