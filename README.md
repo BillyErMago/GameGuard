@@ -58,8 +58,8 @@ This dApp solves this problem by using **cryptographic hashing and blockchain im
 Clone the repository and install root dependencies:
 
 ```bash
-git clone https://github.com/BillyErMago/<NOME-REPO>.git
-cd <NOME-REPO>
+git clone https://github.com/BillyErMago/GameGuard.git
+cd GameGuard
 npm install
 ```
 
